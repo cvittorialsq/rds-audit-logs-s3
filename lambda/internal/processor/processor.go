@@ -3,12 +3,13 @@ package processor
 import (
 	"fmt"
 
-	"github.com/sirupsen/logrus"
 	"rdsauditlogss3/internal/database"
 	"rdsauditlogss3/internal/entity"
 	"rdsauditlogss3/internal/logcollector"
 	"rdsauditlogss3/internal/parser"
 	"rdsauditlogss3/internal/s3writer"
+
+	"github.com/sirupsen/logrus"
 )
 
 type Processor struct {
@@ -31,10 +32,11 @@ func NewProcessor(db database.Database, lc logcollector.LogCollector, w s3writer
 
 func (p *Processor) Process() error {
 	// Validate RDS instance
-	err := p.logcollector.ValidateAndPrepareRDSInstance()
-	if err != nil {
-		return fmt.Errorf("error validating RDS instance: %v", err)
-	}
+	// This isn't really needed
+	//err := p.logcollector.ValidateAndPrepareRDSInstance()
+	//if err != nil {
+	//	return fmt.Errorf("error validating RDS instance: %v", err)
+	//}
 
 	// Get current checkpoint from database
 	id := fmt.Sprintf("%s:%s", p.RdsInstanceIdentifier, "audit")
@@ -42,15 +44,18 @@ func (p *Processor) Process() error {
 	if err != nil {
 		return fmt.Errorf("could not get marker: %v", err)
 	}
+	logrus.Info("checkpointRecord: %s", checkpointRecord)
 
 	currentLogFileTimestamp := int64(0)
 	if checkpointRecord != nil {
 		currentLogFileTimestamp = checkpointRecord.LogFileTimestamp
 	}
+	logrus.Info("currentLogFileTimestamp: %s", currentLogFileTimestamp)
 
 	processedLogFiles := 0
 
 	for {
+		logrus.Info("processedLogFiles: %s", processedLogFiles)
 		logLines, ok, logFileTimestamp, err := p.logcollector.GetLogs(currentLogFileTimestamp)
 		if err != nil {
 			return fmt.Errorf("could not start logcollector: %v", err)
@@ -59,7 +64,7 @@ func (p *Processor) Process() error {
 			// No more logs available
 			break
 		}
-		
+
 		// d1 := []byte(logLines[0])
 		// err = ioutil.WriteFile(fmt.Sprintf("/tmp/%d", logFileTimestamp), d1, 0644)
 

@@ -56,11 +56,12 @@ type RdsLogCollector struct {
 
 func NewRdsLogCollector(api rdsiface.RDSAPI, httpClient HTTPClient, region string, rdsInstanceIdentifier string, dbType string) *RdsLogCollector {
 	return &RdsLogCollector{
-		rds:                api,
-		region:             region,
-		httpClient:         httpClient,
-		dbType:             dbType,
-		logFile:            "audit/server_audit.log",
+		rds:        api,
+		region:     region,
+		httpClient: httpClient,
+		dbType:     dbType,
+		// TODO: make logFile value based on dbType
+		logFile:            "audit/audit.log",
 		instanceIdentifier: rdsInstanceIdentifier,
 	}
 }
@@ -241,8 +242,11 @@ func (c *RdsLogCollector) getLogFiles(retries int) ([]LogFile, error) {
 func findLogFileNewerThanTimestamp(logFiles []LogFile, finishedLogFileTimestamp int64) (*LogFile, error) {
 	sort.SliceStable(logFiles, func(i, j int) bool { return logFiles[i].LastWritten < logFiles[j].LastWritten })
 
-	for _, l := range logFiles {
-		if l.LastWritten > finishedLogFileTimestamp && l.IsRotatedFile() {
+	// After sorting, remove the newest 4 log files from the slice
+	// Aurora MySQL always keeps 4 audit log files active
+	// This is a replacement for the IsRotatedFile check
+	for _, l := range logFiles[:len(logFiles)-4] {
+		if l.LastWritten > finishedLogFileTimestamp /*&& l.IsRotatedFile()*/ {
 			return &l, nil
 		}
 	}

@@ -4,8 +4,9 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
-	"rdsauditlogss3/internal/entity"
 	"io"
+	"rdsauditlogss3/internal/entity"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -28,16 +29,23 @@ func (p *AuditLogParser) ParseEntries(data io.Reader, logFileTimestamp int64) ([
 			continue
 		}
 
-		record := strings.Split(txt,",")
+		record := strings.Split(txt, ",")
 
 		if len(record) < 2 {
 			return nil, fmt.Errorf("could not parse data")
 		}
 
-		ts, err := time.Parse("20060102 15:04:05", record[0])
+		// TODO: probably need to consider all timestamp formats
+		s, err := strconv.ParseInt(record[0][0:10], 10, 64)
 		if err != nil {
-			return nil, fmt.Errorf("could not parse time: %v", err)
+			return nil, fmt.Errorf("could not parse seconds: %v", err)
 		}
+		ns, err := strconv.ParseInt(record[0][10:], 10, 64)
+		if err != nil {
+			return nil, fmt.Errorf("could not parse nanoseconds: %v", err)
+		}
+
+		ts := time.Unix(s, ns)
 
 		newTS := entity.LogEntryTimestamp{
 			Year:  ts.Year(),

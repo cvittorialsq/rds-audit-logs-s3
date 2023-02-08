@@ -1,6 +1,6 @@
 SAM                    := venv/bin/sam
-AWS_REGION             := eu-central-1
-S3_BUCKET              := personio-oss-sar-rds-audit-logs-s3-$(AWS_REGION)
+AWS_REGION             := us-east-1
+S3_BUCKET              := lsqlabs-rds-audit-logs-s3-sam
 PACKAGED_TEMPLATE_FILE := packaged.yaml
 CFN_LINT               := venv/bin/cfn-lint
 
